@@ -1,11 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8"/>
-<title>Insert title here</title>
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet"
+	href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+	integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+	crossorigin="anonymous" />
+
+<script src="https://code.jquery.com/jquery-3.2.0.min.js"
+	integrity="sha256-JAW99MJVpJBGcbzEuXk4Az05s/XyDdBomFqNlM3ic+I="
+	crossorigin="anonymous"></script>
+
+<!-- <script src="https://d3js.org/d3.v4.min.js"></script> -->
+<style>
+.mygrid-wrapper-div {
+	//border: solid red 5px;
+	overflow: scroll;
+	//height: 70%;
+}
+</style>
+
+<title>Json2Flat Evaluator - Converts JSON documents to CSV</title>
+
 </head>
 <body>
-<h1>Json2Flat Evaluator</h1>
-Comming Soon...
+
+	<div class="container-fluid">
+		<h1> Json2Flat Evaluator</h1>
+		<div class="row">
+			<div class="col-xs-6">
+				<form>
+					<label for="inputJson">JSON doc</label>
+					<textarea class="form-control" rows="20" columns="20" id="comment"
+						th:inline="text">[[${dummyJson}]]</textarea>
+					<br /> <label for="headerseparator">Header Separator (Optional)</label> <input
+						type="text" value="_" class="form-control" />
+						<br />
+					<button type="submit" class="btn btn-primary">Go</button>
+				</form>
+			</div>
+
+			<div class="col-xs-6">
+				<label for="inputJson">CSV</label>
+				<div class="csv mygrid-wrapper-div"></div>
+			</div>
+		</div>
+
+	</div>
 </body>
+<script type="text/javascript" th:inline="javascript">
+/*<![CDATA[*/
+	var ugly = null;
+	var obj = null;
+	var pretty = null;
+	$(document)
+			.ready(
+					function() {
+						ugly = $("textarea").val();
+						obj = JSON.parse(ugly);
+						pretty = JSON.stringify(obj, undefined, 4);
+						$("textarea").val(pretty);
+						
+						var data = {};
+						data.JSONString = JSON.stringify(
+								JSON.parse($("textarea")
+										.val()), undefined,
+								0);
+						data.headerSeparator = $("input")
+								.val();
+						var encodeString = encodeURIComponent(data.JSONString);
+						$.ajax({
+							url : '/convert?json='
+									+ encodeString
+									+'&hs='+data.headerSeparator,
+							type : 'GET',
+							success : function(data) {
+								var lines = data.split("\n"),
+							    	output = [],
+							    	i;
+								output.push("<tr><th>"
+						                + lines[0].slice(0,-1).split(",").join("</th><th>")
+						                + "</th></tr>");
+								for(i=1; i<lines.length; i++){
+									output.push("<tr><td>"
+							                + lines[i].slice(0,-1).split(",").join("</td><td>")
+							                + "</td></tr>");
+								}
+								
+								output = "<table class='table table-striped table-bordered'>" + output.join("") + "</table>";
+								
+								$(".csv").empty().html(output);
+							},
+							failure : function(data){
+								alert("Please try with smaller JSON.");
+								location.reload();
+							}
+						});
+
+						$("textarea").on("input", function() {
+
+							try {
+								ugly = $(this).val();
+								console.log(ugly);
+								obj = JSON.parse(ugly);
+								console.log(obj);
+								pretty = JSON.stringify(obj, undefined, 4);
+								$(this).val(pretty);
+							} catch (ex) {
+								console.log("invalid json");
+							}
+						});
+
+						$("form")
+								.submit(
+										function(e) {
+											var data = {};
+											data.JSONString = JSON.stringify(
+													JSON.parse($("textarea")
+															.val()), undefined,
+													0);
+											data.headerSeparator = $("input")
+													.val();
+											var encodeString = encodeURIComponent(data.JSONString);
+											//console.log(data.JSONString);
+											$.ajax({
+												url : '/convert?json='
+														+ encodeString
+														+'&hs='+data.headerSeparator,
+												type : 'GET',
+												success : function(data) {
+													var lines = data.split("\n"),
+												    	output = [],
+												    	i;
+													output.push("<tr><th>"
+											                + lines[0].slice(0,-1).split(",").join("</th><th>")
+											                + "</th></tr>");
+													for(i=1; i<lines.length; i++){
+														output.push("<tr><td>"
+												                + lines[i].slice(0,-1).split(",").join("</td><td>")
+												                + "</td></tr>");
+													}
+													
+													output = "<table class='table table-striped table-bordered'>" + output.join("") + "</table>";
+													
+													$(".csv").empty().html(output);
+												}
+											});
+											e.preventDefault();
+										});
+					});
+/*]]>*/
+</script>
 </html>
